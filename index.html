@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roll Call — Face Scan Attendance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #F7F5F0;
+    --paper-raised: #FFFFFF;
+    --ink: #26324A;
+    --ink-soft: #5B6478;
+    --line: #DAD3C3;
+    --margin-rule: #C2503F;
+    --present: #2F6B4F;
+    --present-bg: #E7EFE9;
+    --absent: #B54B3D;
+    --absent-bg: #F5E7E3;
+    --brass: #A9762F;
+    --brass-dark: #8C6023;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Karla', sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  #app{
+    max-width: 560px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background: var(--paper);
+    position: relative;
+    padding-bottom: 48px;
+  }
+  header.masthead{
+    padding: 28px 24px 18px 24px;
+    border-bottom: 1px solid var(--line);
+  }
+  header.masthead h1{
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 2rem;
+    margin: 0 0 4px 0;
+    letter-spacing: -0.01em;
+  }
+  header.masthead p{
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 0.92rem;
+  }
+  nav.tabs{
+    display:flex;
+    border-bottom: 1px solid var(--line);
+    padding: 0 24px;
+  }
+  nav.tabs button{
+    background:none;
+    border:none;
+    font-family: 'Karla', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+    padding: 14px 0;
+    margin-right: 26px;
+    cursor:pointer;
+    border-bottom: 2px solid transparent;
+    transform: translateY(1px);
+  }
+  nav.tabs button.active{
+    color: var(--ink);
+    border-bottom: 2px solid var(--margin-rule);
+  }
+  main{ padding: 24px; }
+  .ledger{
+    position: relative;
+    padding-left: 22px;
+  }
+  .ledger::before{
+    content:"";
+    position:absolute;
+    left: 8px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--margin-rule);
+    opacity: 0.55;
+  }
+  .row{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    padding: 13px 4px;
+    border-bottom: 1px solid var(--line);
+    gap: 10px;
+  }
+  .row:last-child{ border-bottom: none; }
+  .row .who{ display:flex; align-items:center; gap:10px; min-width:0; }
+  .row .avatar{
+    width:36px; height:36px; border-radius:50%;
+    object-fit:cover; border:1px solid var(--line);
+    flex-shrink:0; background:var(--paper-raised);
+  }
+  .row .avatar.placeholder{
+    display:flex; align-items:center; justify-content:center;
+    color:var(--ink-soft); font-size:0.7rem; font-weight:700;
+  }
+  .row .name{ font-weight: 600; font-size: 0.98rem; }
+  .row .meta{ color: var(--ink-soft); font-size: 0.82rem; margin-top: 2px; }
+  .pill{
+    font-size: 0.76rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .pill.present{ background: var(--present-bg); color: var(--present); }
+  .pill.absent{ background: var(--absent-bg); color: var(--absent); }
+  .pill.pending{ background: #EFEAE0; color: var(--ink-soft); }
+  select, input[type=text], input[type=date]{
+    font-family: 'Karla', sans-serif;
+    font-size: 1rem;
+    padding: 11px 12px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--paper-raised);
+    color: var(--ink);
+    width: 100%;
+  }
+  select:focus, input:focus{ outline: 2px solid var(--brass); outline-offset: 1px; }
+  label.field-label{
+    display:block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+  }
+  .field{ margin-bottom: 18px; }
+  button.primary{
+    font-family: 'Karla', sans-serif;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    padding: 13px 18px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    width: 100%;
+  }
+  button.primary:disabled{ opacity: 0.45; cursor: default; }
+  button.secondary{
+    font-family: 'Karla', sans-serif;
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--ink);
+    padding: 9px 14px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  button.link{
+    background:none; border:none; color: var(--brass-dark);
+    font-weight:700; font-size:0.82rem; cursor:pointer; padding:6px 0;
+  }
+  button.link.danger{ color: var(--absent); }
+
+  .camera-wrap{
+    position: relative;
+    width: 100%;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #10151f;
+    border: 1px solid var(--line);
+    aspect-ratio: 4 / 3;
+  }
+  .camera-wrap video, .camera-wrap canvas{
+    position:absolute; top:0; left:0; width:100%; height:100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+  }
+  .camera-wrap canvas{ pointer-events:none; }
+  .camera-placeholder{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    color: #C9CEDA; font-size:0.85rem; text-align:center; padding:20px;
+  }
+  .scan-banner{
+    position:absolute; left:0; right:0; bottom:0;
+    padding: 10px 14px;
+    background: rgba(16,21,31,0.72);
+    color:#fff;
+    font-size: 0.85rem;
+    font-weight:600;
+    text-align:center;
+  }
+  .scan-banner.match{ background: rgba(47,107,79,0.88); }
+  .scan-banner.nomatch{ background: rgba(16,21,31,0.72); }
+  .camera-controls{
+    display:flex; gap:10px; margin-top:14px;
+  }
+  .camera-controls button{ flex:1; }
+  .banner{
+    background: #F0EAD9;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 12px 14px;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+  .banner.error{ background: var(--absent-bg); color: var(--absent); }
+  .empty{
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+    padding: 18px 4px;
+    text-align: center;
+  }
+  .section-title{
+    font-family: 'Fraunces', serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+  }
+  .toprow{
+    display:flex; align-items:center; justify-content: space-between; margin-bottom: 14px; gap: 10px;
+  }
+  .toprow input[type=date]{ width: auto; }
+  .count-strip{
+    display:flex; gap: 14px; margin-bottom: 18px; flex-wrap: wrap;
+  }
+  .count-chip{
+    flex:1; min-width: 90px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 10px 12px;
+    background: var(--paper-raised);
+  }
+  .count-chip .num{ font-family:'Fraunces', serif; font-size: 1.5rem; font-weight:600; }
+  .count-chip .lbl{ font-size: 0.72rem; color: var(--ink-soft); font-weight:700; }
+  .add-row{ display:flex; gap: 8px; margin-bottom: 20px; }
+  .add-row input{ flex:1; }
+  footer.note{
+    padding: 18px 24px 0 24px;
+    color: var(--ink-soft);
+    font-size: 0.76rem;
+    line-height: 1.5;
+  }
+  .enroll-panel{
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 20px;
+    background: var(--paper-raised);
+  }
+  .enroll-panel h3{
+    font-family:'Fraunces', serif; font-size:1rem; font-weight:600; margin:0 0 12px 0;
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(function(){
+  const STORAGE_KEY_ROSTER = "roster";
+  const STORAGE_KEY_PREFIX = "attendance:";
+  const FACEAPI_SCRIPT = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js";
+  const MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/";
+  const MATCH_THRESHOLD = 0.55;
+  const COOLDOWN_MS = 2500;
+  const SCAN_INTERVAL_MS = 650;
+
+  let state = {
+    view: "checkin",
+    roster: [],
+    modelsStatus: "loading", // loading | ready | error
+    modelsError: "",
+    cameraError: "",
+    scanning: false,
+    scanStatus: "idle", // idle | searching | match | nomatch
+    scanMessage: "",
+    enrollingId: null, // id of student currently being enrolled
+    enrollCapturing: false,
+    logDate: todayStr(),
+    logRecords: [],
+    newStudentName: ""
+  };
+
+  // Persistent elements so a live camera stream survives re-renders.
+  const videoEl = document.createElement("video");
+  videoEl.autoplay = true; videoEl.muted = true; videoEl.playsInline = true;
+  const canvasEl = document.createElement("canvas");
+  let cameraStream = null;
+  let scanTimer = null;
+  let scanRefs = {}; // filled on render, used for lightweight status updates
+
+  function todayStr(){
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  }
+  function nowTime(){
+    const d = new Date();
+    let h = d.getHours();
+    const m = String(d.getMinutes()).padStart(2, "0");
+    const ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12; if (h === 0) h = 12;
+    return `${h}:${m} ${ampm}`;
+  }
+  function nowTimestamp(){ return new Date().toISOString(); }
+  function uid(){ return crypto.randomUUID ? crypto.randomUUID() : String(Date.now()+Math.random()); }
+  function initials(name){ return name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase(); }
+
+  // ---------- Storage ----------
+  async function loadRoster(){
+    try{
+      const res = await window.storage.get(STORAGE_KEY_ROSTER, true);
+      state.roster = res && res.value ? JSON.parse(res.value) : [];
+    }catch(e){ state.roster = []; }
+  }
+  async function saveRoster(){
+    try{ await window.storage.set(STORAGE_KEY_ROSTER, JSON.stringify(state.roster), true); }
+    catch(e){ console.error("Failed to save roster", e); }
+  }
+  async function loadLog(dateStr){
+    try{
+      const res = await window.storage.get(STORAGE_KEY_PREFIX + dateStr, true);
+      state.logRecords = res && res.value ? JSON.parse(res.value) : [];
+    }catch(e){ state.logRecords = []; }
+  }
+  async function saveLog(dateStr, records){
+    try{ await window.storage.set(STORAGE_KEY_PREFIX + dateStr, JSON.stringify(records), true); }
+    catch(e){ console.error("Failed to save attendance log", e); }
+  }
+
+  // ---------- Face model loading ----------
+  function loadScript(src){
+    return new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = src;
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error("Could not load the face recognition library from " + src));
+      document.head.appendChild(s);
+    });
+  }
+
+  async function initModels(){
+    try{
+      await loadScript(FACEAPI_SCRIPT);
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+      ]);
+      state.modelsStatus = "ready";
+    }catch(e){
+      state.modelsStatus = "error";
+      state.modelsError = "Face recognition needs an internet connection to load its models the first time (about 6 MB). Check your connection and reload.";
+      console.error(e);
+    }
+    render();
+  }
+
+  // ---------- Camera ----------
+  async function startCamera(){
+    state.cameraError = "";
+    try{
+      cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 480 } }, audio: false });
+      videoEl.srcObject = cameraStream;
+      await videoEl.play();
+      await new Promise(resolve => {
+        if (videoEl.videoWidth) return resolve();
+        videoEl.onloadedmetadata = () => resolve();
+      });
+      canvasEl.width = videoEl.videoWidth || 480;
+      canvasEl.height = videoEl.videoHeight || 360;
+      return true;
+    }catch(e){
+      state.cameraError = e.name === "NotAllowedError"
+        ? "Camera access was blocked. Allow camera permission for this page and try again."
+        : "Couldn't reach a camera on this device (" + e.message + ").";
+      return false;
+    }
+  }
+
+  function stopCamera(){
+    if (cameraStream){
+      cameraStream.getTracks().forEach(t => t.stop());
+      cameraStream = null;
+    }
+    videoEl.srcObject = null;
+  }
+
+  function clearOverlay(){
+    const ctx = canvasEl.getContext("2d");
+    ctx.clearRect(0,0,canvasEl.width, canvasEl.height);
+  }
+
+  function drawBox(box, color){
+    const ctx = canvasEl.getContext("2d");
+    clearOverlay();
+    ctx.strokeStyle = color || "#A9762F";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(box.x, box.y, box.width, box.height);
+  }
+
+  async function captureThumbnail(){
+    const t = document.createElement("canvas");
+    t.width = 120; t.height = 120;
+    const ctx = t.getContext("2d");
+    const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
+    const side = Math.min(vw, vh);
+    ctx.translate(120,0); ctx.scale(-1,1); // mirror to match preview
+    ctx.drawImage(videoEl, (vw-side)/2, (vh-side)/2, side, side, 0, 0, 120, 120);
+    return t.toDataURL("image/jpeg", 0.7);
+  }
+
+  async function detectFace(){
+    if (!videoEl.srcObject) return null;
+    try{
+      const result = await faceapi.detectSingleFace(videoEl, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }))
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+      return result || null;
+    }catch(e){
+      console.error("Detection error", e);
+      return null;
+    }
+  }
+
+  function euclideanDistance(a, b){
+    let sum = 0;
+    for (let i=0; i<a.length; i++){ const d = a[i]-b[i]; sum += d*d; }
+    return Math.sqrt(sum);
+  }
+
+  function findBestMatch(descriptor){
+    let best = null;
+    state.roster.forEach(s => {
+      if (!s.descriptor) return;
+      const dist = euclideanDistance(descriptor, s.descriptor);
+      if (!best || dist < best.distance) best = { student: s, distance: dist };
+    });
+    return best;
+  }
+
+  // ---------- Enrollment flow ----------
+  async function openEnroll(studentId){
+    state.enrollingId = studentId;
+    state.cameraError = "";
+    render();
+    if (state.modelsStatus === "ready"){
+      await startCamera();
+      render();
+    }
+  }
+
+  function closeEnroll(){
+    stopCamera();
+    state.enrollingId = null;
+    state.enrollCapturing = false;
+    render();
+  }
+
+  async function captureEnrollment(){
+    state.enrollCapturing = true;
+    render();
+    const result = await detectFace();
+    if (!result){
+      state.enrollCapturing = false;
+      state.cameraError = "No face detected — center your face in the frame and try again.";
+      render();
+      return;
+    }
+    const thumbnail = await captureThumbnail();
+    const idx = state.roster.findIndex(s => s.id === state.enrollingId);
+    if (idx > -1){
+      state.roster[idx].descriptor = Array.from(result.descriptor);
+      state.roster[idx].thumbnail = thumbnail;
+      state.roster[idx].enrolledAt = new Date().toISOString();
+      await saveRoster();
+    }
+    state.enrollCapturing = false;
+    closeEnroll();
+  }
+
+  // ---------- Check-in flow ----------
+  async function startScanning(){
+    if (state.modelsStatus !== "ready") return;
+    const ok = await startCamera();
+    if (!ok){ render(); return; }
+    state.scanning = true;
+    state.scanStatus = "searching";
+    render();
+    scanLoop();
+  }
+
+  function stopScanning(){
+    state.scanning = false;
+    clearTimeout(scanTimer);
+    stopCamera();
+    state.scanStatus = "idle";
+    render();
+  }
+
+  async function scanLoop(){
+    if (!state.scanning) return;
+    const result = await detectFace();
+    if (result){
+      drawBox(result.detection.box, "#A9762F");
+      const match = findBestMatch(Array.from(result.descriptor));
+      if (match && match.distance < MATCH_THRESHOLD){
+        await handleMatch(match.student);
+        return; // handleMatch schedules the resume
+      } else {
+        setScanStatus("nomatch", "No match — is this student enrolled yet?");
+      }
+    } else {
+      clearOverlay();
+      setScanStatus("searching", "Looking for a face…");
+    }
+    scanTimer = setTimeout(scanLoop, SCAN_INTERVAL_MS);
+  }
+
+  function setScanStatus(status, message){
+    state.scanStatus = status;
+    state.scanMessage = message;
+    if (scanRefs.banner){
+      scanRefs.banner.textContent = message;
+      scanRefs.banner.className = "scan-banner " + status;
+    }
+  }
+
+  async function handleMatch(student){
+    drawBox({x:0,y:0,width:canvasEl.width,height:canvasEl.height}, "#2F6B4F");
+    await loadLog(state.logDate);
+    const already = state.logRecords.find(r => r.studentId === student.id);
+    if (!already){
+      state.logRecords.push({ studentId: student.id, name: student.name, time: nowTime(), timestamp: nowTimestamp(), status: "present" });
+      await saveLog(state.logDate, state.logRecords);
+      setScanStatus("match", "✓ " + student.name + " — marked present");
+    } else {
+      setScanStatus("match", student.name + " already checked in at " + already.time);
+    }
+    render();
+    scanTimer = setTimeout(() => {
+      if (state.scanning){
+        setScanStatus("searching", "Looking for a face…");
+        clearOverlay();
+        scanLoop();
+      }
+    }, COOLDOWN_MS);
+  }
+
+  // ---------- Roster actions ----------
+  async function addStudent(){
+    const name = state.newStudentName.trim();
+    if (!name) return;
+    state.roster.push({ id: uid(), name, descriptor: null, thumbnail: null, enrolledAt: null });
+    state.newStudentName = "";
+    await saveRoster();
+    render();
+  }
+  async function removeStudent(id){
+    state.roster = state.roster.filter(s => s.id !== id);
+    await saveRoster();
+    render();
+  }
+  async function markAbsent(studentId, name){
+    await loadLog(state.logDate);
+    const idx = state.logRecords.findIndex(r => r.studentId === studentId);
+    if (idx > -1) state.logRecords[idx].status = "absent";
+    else state.logRecords.push({ studentId, name, time: "—", status: "absent" });
+    await saveLog(state.logDate, state.logRecords);
+    render();
+  }
+  async function clearRecord(studentId){
+    await loadLog(state.logDate);
+    state.logRecords = state.logRecords.filter(r => r.studentId !== studentId);
+    await saveLog(state.logDate, state.logRecords);
+    render();
+  }
+  async function switchView(view){
+    if (state.scanning) stopScanning();
+    if (state.enrollingId) closeEnroll();
+    state.view = view;
+    if (view === "log") await loadLog(state.logDate);
+    render();
+  }
+  async function changeLogDate(dateStr){
+    state.logDate = dateStr;
+    await loadLog(dateStr);
+    render();
+  }
+  function downloadCsv(){
+    const rows = [["Name","Time","Status"]];
+    state.roster.forEach(s => {
+      const rec = state.logRecords.find(r => r.studentId === s.id);
+      rows.push([s.name, rec ? rec.time : "—", rec ? rec.status : "pending"]);
+    });
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `attendance-${state.logDate}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ---------- DOM helpers ----------
+  function el(tag, attrs, children){
+    const node = document.createElement(tag);
+    if (attrs){
+      Object.entries(attrs).forEach(([k,v]) => {
+        if (v === null || v === undefined) return;
+        if (k === "class") node.className = v;
+        else if (k.startsWith("on") && typeof v === "function") node.addEventListener(k.slice(2), v);
+        else if (k === "html") node.innerHTML = v;
+        else node.setAttribute(k, v);
+      });
+    }
+    (children || []).forEach(c => {
+      if (c === null || c === undefined) return;
+      node.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+    });
+    return node;
+  }
+
+  function avatar(student){
+    if (student.thumbnail){
+      return el("img", { class: "avatar", src: student.thumbnail });
+    }
+    const div = el("div", { class: "avatar placeholder" }, [initials(student.name || "?")]);
+    return div;
+  }
+
+  function renderMasthead(){
+    return el("header", { class: "masthead" }, [
+      el("h1", {}, ["Roll Call"]),
+      el("p", {}, ["Face scan attendance for the classroom"])
+    ]);
+  }
+
+  function renderTabs(){
+    const tabs = [
+      { id: "checkin", label: "Check In" },
+      { id: "roster", label: "Roster" },
+      { id: "log", label: "Today's Log" }
+    ];
+    return el("nav", { class: "tabs" }, tabs.map(t =>
+      el("button", { class: t.id === state.view ? "active" : "", onclick: () => switchView(t.id) }, [t.label])
+    ));
+  }
+
+  function renderModelBanner(){
+    if (state.modelsStatus === "loading"){
+      return el("div", { class: "banner" }, ["Loading face recognition models… this only happens once per visit."]);
+    }
+    if (state.modelsStatus === "error"){
+      return el("div", { class: "banner error" }, [state.modelsError]);
+    }
+    return null;
+  }
+
+  function cameraPanel({ onOverlayReady }){
+    const wrap = el("div", { class: "camera-wrap" });
+    wrap.appendChild(videoEl);
+    wrap.appendChild(canvasEl);
+    if (!videoEl.srcObject){
+      wrap.appendChild(el("div", { class: "camera-placeholder" }, [
+        state.cameraError || "Camera preview will appear here."
+      ]));
+    }
+    if (onOverlayReady) onOverlayReady(wrap);
+    return wrap;
+  }
+
+  function renderCheckin(){
+    const container = document.createElement("div");
+    const modelBanner = renderModelBanner();
+    if (modelBanner) container.appendChild(modelBanner);
+
+    const enrolledCount = state.roster.filter(s => s.descriptor).length;
+    if (enrolledCount === 0 && state.modelsStatus === "ready"){
+      container.appendChild(el("div", { class: "empty" }, ["No students are enrolled yet. Go to Roster to add students and capture their face."]));
+      return container;
+    }
+
+    const wrap = cameraPanel({});
+    if (state.scanning){
+      const banner = el("div", { class: "scan-banner " + state.scanStatus }, [state.scanMessage || "Looking for a face…"]);
+      scanRefs.banner = banner;
+      wrap.appendChild(banner);
+    }
+    container.appendChild(wrap);
+
+    if (state.cameraError && !state.scanning){
+      container.appendChild(el("div", { class: "banner error" }, [state.cameraError]));
+    }
+
+    const controls = el("div", { class: "camera-controls" });
+    if (!state.scanning){
+      const btn = el("button", { class: "primary", onclick: startScanning }, ["Start Face Scan"]);
+      if (state.modelsStatus !== "ready") btn.disabled = true;
+      controls.appendChild(btn);
+    } else {
+      controls.appendChild(el("button", { class: "secondary", onclick: stopScanning }, ["Stop Camera"]));
+    }
+    container.appendChild(controls);
+    return container;
+  }
+
+  function renderEnrollPanel(student){
+    const panel = el("div", { class: "enroll-panel" });
+    panel.appendChild(el("h3", {}, ["Capture face — " + student.name]));
+    if (state.cameraError){
+      panel.appendChild(el("div", { class: "banner error" }, [state.cameraError]));
+    } else if (state.modelsStatus !== "ready"){
+      panel.appendChild(el("div", { class: "banner" }, ["Waiting for face recognition models to finish loading…"]));
+    }
+    panel.appendChild(cameraPanel({}));
+    const controls = el("div", { class: "camera-controls" }, [
+      el("button", {
+        class: "primary",
+        onclick: captureEnrollment
+      }, [state.enrollCapturing ? "Capturing…" : "Capture Face"]),
+      el("button", { class: "secondary", onclick: closeEnroll }, ["Cancel"])
+    ]);
+    if (state.enrollCapturing || !videoEl.srcObject) controls.children[0].disabled = true;
+    panel.appendChild(controls);
+    return panel;
+  }
+
+  function renderRoster(){
+    const container = document.createElement("div");
+    const modelBanner = renderModelBanner();
+    if (modelBanner) container.appendChild(modelBanner);
+
+    const addRow = el("div", { class: "add-row" }, [
+      (() => {
+        const input = el("input", { type: "text", placeholder: "Student name", oninput: (e) => { state.newStudentName = e.target.value; } });
+        input.value = state.newStudentName;
+        input.addEventListener("keydown", (e) => { if (e.key === "Enter") addStudent(); });
+        return input;
+      })(),
+      el("button", { class: "secondary", onclick: addStudent }, ["Add"])
+    ]);
+    container.appendChild(addRow);
+
+    if (state.enrollingId){
+      const student = state.roster.find(s => s.id === state.enrollingId);
+      if (student) container.appendChild(renderEnrollPanel(student));
+    }
+
+    container.appendChild(el("div", { class: "section-title" }, ["Students (" + state.roster.length + ")"]));
+
+    if (state.roster.length === 0){
+      container.appendChild(el("div", { class: "empty" }, ["Add your first student above."]));
+      return container;
+    }
+
+    const ledger = el("div", { class: "ledger" });
+    state.roster.forEach(s => {
+      const who = el("div", { class: "who" }, [
+        avatar(s),
+        el("div", {}, [
+          el("div", { class: "name" }, [s.name]),
+          el("div", { class: "meta" }, [s.descriptor ? "Face saved" : "Not enrolled yet"])
+        ])
+      ]);
+      const actions = el("div", { style: "display:flex; gap:8px; align-items:center;" }, [
+        el("button", { class: "secondary", onclick: () => openEnroll(s.id) }, [s.descriptor ? "Re-capture" : "Enroll"]),
+        el("button", { class: "link danger", onclick: () => removeStudent(s.id) }, ["Remove"])
+      ]);
+      ledger.appendChild(el("div", { class: "row" }, [who, actions]));
+    });
+    container.appendChild(ledger);
+    return container;
+  }
+
+  function renderLog(){
+    const container = document.createElement("div");
+    const present = state.logRecords.filter(r => r.status === "present").length;
+    const absent = state.logRecords.filter(r => r.status === "absent").length;
+    const pending = state.roster.length - state.logRecords.length;
+
+    const dateInput = el("input", { type: "date", value: state.logDate, onchange: (e) => changeLogDate(e.target.value) });
+    container.appendChild(el("div", { class: "toprow" }, [
+      el("div", { class: "section-title", style: "margin:0;" }, ["Attendance"]),
+      dateInput
+    ]));
+
+    container.appendChild(el("div", { class: "count-strip" }, [
+      el("div", { class: "count-chip" }, [el("div", { class: "num" }, [String(present)]), el("div", { class: "lbl" }, ["PRESENT"])]),
+      el("div", { class: "count-chip" }, [el("div", { class: "num" }, [String(absent)]), el("div", { class: "lbl" }, ["ABSENT"])]),
+      el("div", { class: "count-chip" }, [el("div", { class: "num" }, [String(Math.max(pending,0))]), el("div", { class: "lbl" }, ["PENDING"])])
+    ]));
+
+    if (state.roster.length === 0){
+      container.appendChild(el("div", { class: "empty" }, ["Add students in the Roster tab to start tracking attendance."]));
+      return container;
+    }
+
+    const ledger = el("div", { class: "ledger" });
+    state.roster.forEach(s => {
+      const rec = state.logRecords.find(r => r.studentId === s.id);
+      const status = rec ? rec.status : "pending";
+      const pill = el("span", { class: "pill " + status }, [status === "present" ? "Present" : status === "absent" ? "Absent" : "Pending"]);
+      const who = el("div", { class: "who" }, [
+        avatar(s),
+        el("div", {}, [
+          el("div", { class: "name" }, [s.name]),
+          el("div", { class: "meta" }, [rec && rec.time && rec.time !== "—" ? "Checked in at " + rec.time : "No check-in yet"])
+        ])
+      ]);
+      const actionBtns = [];
+      if (status !== "absent") actionBtns.push(el("button", { class: "link danger", onclick: () => markAbsent(s.id, s.name) }, ["Mark absent"]));
+      if (rec) actionBtns.push(el("button", { class: "link", onclick: () => clearRecord(s.id) }, ["Clear"]));
+      const right = el("div", { style: "display:flex; flex-direction:column; align-items:flex-end; gap:4px;" }, [pill, el("div", { style: "display:flex; gap:10px;" }, actionBtns)]);
+      ledger.appendChild(el("div", { class: "row" }, [who, right]));
+    });
+    container.appendChild(ledger);
+    container.appendChild(el("button", { class: "secondary", style: "margin-top:16px;", onclick: downloadCsv }, ["Download CSV"]));
+    return container;
+  }
+
+  function render(){
+    scanRefs = {};
+    const app = document.getElementById("app");
+    app.innerHTML = "";
+    app.appendChild(renderMasthead());
+    app.appendChild(renderTabs());
+    const main = el("main", {}, []);
+    if (state.view === "checkin") main.appendChild(renderCheckin());
+    else if (state.view === "roster") main.appendChild(renderRoster());
+    else if (state.view === "log") main.appendChild(renderLog());
+    app.appendChild(main);
+    app.appendChild(el("footer", { class: "note" }, [
+      "Face data (a numeric descriptor, not a stored photo of the raw scan) and attendance records are kept in this browser's shared app storage. Host this file on your own HTTPS server so every classroom device shares the same roster and camera access works reliably."
+    ]));
+  }
+
+  async function init(){
+    render();
+    await loadRoster();
+    await loadLog(state.logDate);
+    render();
+    initModels();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
