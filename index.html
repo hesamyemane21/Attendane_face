@@ -280,6 +280,33 @@
   const COOLDOWN_MS = 2500;
   const SCAN_INTERVAL_MS = 650;
 
+  // window.storage only exists inside Claude.ai's own preview sandbox.
+  // On a real deployment (GitHub Pages, Netlify, etc.) it doesn't exist,
+  // so fall back to the browser's built-in localStorage — this is what
+  // actually persists data once the app is hosted for real.
+  if (!window.storage){
+    window.storage = {
+      async get(key){
+        try{
+          const raw = localStorage.getItem(key);
+          return raw === null ? null : { key, value: raw };
+        }catch(e){ return null; }
+      },
+      async set(key, value){
+        try{ localStorage.setItem(key, value); return { key, value }; }
+        catch(e){ console.error("localStorage set failed", e); return null; }
+      },
+      async delete(key){
+        try{ localStorage.removeItem(key); return { key, deleted: true }; }
+        catch(e){ return null; }
+      },
+      async list(prefix){
+        try{ return { keys: Object.keys(localStorage).filter(k => !prefix || k.startsWith(prefix)) }; }
+        catch(e){ return { keys: [] }; }
+      }
+    };
+  }
+
   let state = {
     view: "checkin",
     roster: [],
@@ -844,7 +871,7 @@
     else if (state.view === "log") main.appendChild(renderLog());
     app.appendChild(main);
     app.appendChild(el("footer", { class: "note" }, [
-      "Face data (a numeric descriptor, not a stored photo of the raw scan) and attendance records are kept in this browser's shared app storage. Host this file on your own HTTPS server so every classroom device shares the same roster and camera access works reliably."
+      "Face data (a numeric descriptor, not a stored photo of the raw scan) and attendance records are saved in this browser's local storage, on this device only. Checking in from a different phone or browser won't see the same roster — for a shared, multi-device roster you'd need a small backend database instead of local storage."
     ]));
   }
 
